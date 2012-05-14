@@ -1,0 +1,6 @@
+# OS X Finder metadata
+.DS_Store
+
+# Build Files
+*.dmg
+*.pkg

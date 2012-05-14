@@ -1,0 +1,35 @@
+#!/bin/bash
+
+SCRIPT_NAME="${0##*/}"
+
+LOGGER="/usr/bin/logger"
+LOG_TAG="$SCRIPT_NAME"
+
+function log () {
+    $LOGGER -t "$LOG_TAG" "$1"
+}
+
+function die () {
+    local status=${2:-$?}
+    log "$1 Exiting with status $status"
+    exit "$status"
+}
+
+USERNAME="$1"
+
+# Get the distinguished name for the user
+DN="$(/usr/bin/dscl /Search -read /Users/$USERNAME dsAttrTypeNative:distinguishedName 2>/dev/null)"
+
+if [[ -n "$DN" ]]; then
+    OU="${DN#*CN=*,}"
+    log "Found user $USERNAME in $OU"
+    
+    # Deny access if user is in the Rabble OU
+    if [[ "$OU" == "OU=Rabble"* ]]; then
+        die "User $USERNAME is not authorized to log in to this computer." 99
+    else
+        log "Allowing $USERNAME to log in."
+    fi
+else
+    log "Could not look up user $USERNAME. Allowing log in."
+fi

@@ -1,0 +1,9 @@
+#!/bin/bash
+
+function die () {
+    local status=${2:-$?}
+    printf '%s\n' "$@" >&2
+    exit "$status"
+}
+
+/usr/bin/defaults write com.apple.loginwindow LoginHook /private/etc/hooks/loginhook

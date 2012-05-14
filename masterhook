@@ -1,0 +1,63 @@
+#!/bin/bash
+
+SCRIPT_NAME="${0##*/}"
+
+LOGGER="/usr/bin/logger"
+LOG_TAG="$SCRIPT_NAME"
+
+HOOKS_DIR="/etc/hooks"
+LOGIN_DIR="login"
+LOGOUT_DIR="logout"
+
+function log () {
+    $LOGGER -t "$LOG_TAG" "$1"
+}
+
+function die () {
+    local status=${2:-$?}
+    log "$1 Exiting with status $status"
+    exit "$status"
+}
+
+# Get the username
+if [[ -n "$1" ]]; then
+    USERNAME="$1"
+else
+    die "Username not passed into the master hook script." 1
+fi
+
+# Get the proper hook scripts directory
+if [[ "$SCRIPT_NAME" == "loginhook" ]]; then
+    HOOK_SCRIPTS="$HOOKS_DIR/$LOGIN_DIR"
+elif [[ "$SCRIPT_NAME" == "logouthook" ]]; then
+    HOOK_SCRIPTS="$HOOKS_DIR/$LOGOUT_DIR"
+else
+    die "Master hook script launched as $SCRIPT_NAME." 1
+fi
+
+# Execute each hook script in alphabetical order
+for script in "$HOOK_SCRIPTS"/*; do
+    
+    # Make sure the file exists and that it's executable
+    if [[ -f "$script" ]]; then
+        if [[ -x "$script" ]]; then
+            
+            # Execute the hook script and capture the exit status
+            log "Executing $script with username $USERNAME..."
+            "$script" "$USERNAME"
+            status=$?
+            
+            # Take appropriate action on success or failure
+            if [[ $status -eq 0 ]]; then
+                log "$script succeeded."
+            else
+                die "$script returned an error." $status
+            fi
+            
+        else
+            log "$script is not executable. Skipping."
+        fi
+    else
+        log "$script is not a file. Skipping."
+    fi
+done
